@@ -10,6 +10,8 @@ This project set out to answer that with data instead of hope. I built a market 
 
 This repo holds the research tools. They record and analyze only. **Nothing here places trades or needs an API key.**
 
+> **Next project:** [kalshi-market-scanner](https://github.com/zacharyalitwin-alt/kalshi-market-scanner) asks whether *other* Kalshi markets (weather, oil, sports, economics) are priced as well as this one.
+
 ---
 
 ## Contents
@@ -208,6 +210,12 @@ One row per finished window:
 
 - **Final-minute study.** Compare the model with the actual bid and ask, not the mid, in the last 5 minutes, to see if any of its accuracy advantage survives the spread.
 - **Mispricing map.** Check whether the market is wrong under specific conditions, such as after large moves or on volatile days.
+
+---
+
+## Next project
+
+**[kalshi-market-scanner](https://github.com/zacharyalitwin-alt/kalshi-market-scanner)** takes the question one step further. If the 15-minute Bitcoin market is priced about right, is every Kalshi market? The scanner records hundreds of markets across about 200 series as they approach close, then measures calibration and accuracy category by category, using the same rules as this project: benchmark against the market's price, choose on TRAIN, judge on unseen TEST, and include fees.
 
 ---
 
