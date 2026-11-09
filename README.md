@@ -1,6 +1,6 @@
-# kalshi-bot-learning
-15 Min BTC Window Recorder, Trainer, and Trader
 # Kalshi Bot Learning
+
+*15-minute BTC window recorder and research lab*
 
 **Can a bot beat Kalshi's 15-minute Bitcoin market?**
 
