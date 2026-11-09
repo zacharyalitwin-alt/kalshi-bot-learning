@@ -1,4 +1,4 @@
-# kalshi_bot_learning
+# kalshi-bot-learning
 15 Min BTC Window Recorder, Trainer, and Trader
 # Kalshi Bot Learning
 
