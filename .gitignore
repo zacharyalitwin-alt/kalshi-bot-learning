@@ -1,0 +1,20 @@
+# keys and secrets - never commit
+*.pem
+*.key
+.env
+
+# recorded data and reports (large, personal, grows daily)
+data/live/*
+!data/live/.gitkeep
+data/logs/
+*.csv
+*_report.txt
+best_config.json
+
+# old bots and their state
+archive/
+*_state.json
+
+# python
+__pycache__/
+*.pyc
