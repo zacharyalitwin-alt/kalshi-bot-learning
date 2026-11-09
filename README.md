@@ -108,7 +108,7 @@ where `d` is Bitcoin's distance from the strike, `σ` is recent per-second volat
 Python 3.10 or newer.
 
 ```bash
-git clone https://github.com/<your-username>/kalshi-bot-learning.git
+git clone https://github.com/zacharyalitwin-alt/kalshi-bot-learning.git
 cd kalshi-bot-learning
 pip install -r requirements.txt
 cd tools
@@ -224,8 +224,3 @@ MIT. See [LICENSE](LICENSE).
 ## Disclaimer
 
 For research and education only. Not investment advice. Prediction markets carry real risk of loss, and this project found no edge.
-Recording continues. Possible next studies: whether the market prices the final minute correctly (half of the settle average is known at 30 s left), and a map of conditions where the market might be wrong.
-
-## Disclaimer
-
-Research and education only. Not investment advice. Prediction markets carry real risk of loss; this project found no edge.
