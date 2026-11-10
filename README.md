@@ -49,7 +49,8 @@ Because both ends are one-minute averages, the first and last minute of each win
 |---|---|---|
 | **Model vs market** | 14,483 samples, ~200 windows | The market's price predicted outcomes better than my model (Brier score 0.1789 vs 0.1883), in both halves of the data. |
 | **Trading on disagreement** | same | The more the model disagreed with the market, the more it lost: −1.2¢ per contract at a 5¢ gap, **−9.0¢** at a 20¢ gap. |
-| **Strategy lab** | 216 windows, 5 ideas, 144 settings | **No winner.** No setting was strong on both the training data and the unseen test data. The "best" settings changed from run to run, which is what noise looks like. |
+| **Strategy lab** | 241 windows, 6 ideas, 144 settings | **No winner.** No setting was strong on both the training data and the unseen test data. One lead to watch: "follow the move" ($25 move, hold) has been positive over the whole period in three runs in a row, but it hasn't passed the bar. |
+| **New lab ideas** | 161 windows (Nov 6–8) | Order-book imbalance, a leading exchange, and buying in the final minute using the partly known settlement average: **no edge** on the data so far. Full-data run pending. |
 | **Backtest** | 216 windows, 36 taker/maker/last-minute rules | No rule was profitable in both halves of the data. Every resting-bid (maker) rule lost 1–8¢ per trade. |
 | **Lag study** | 435 Bitcoin jumps of $20+ in 2 s | **No usable lag.** 83% of Kalshi's price move happens in the same second as the jump. Trading 1 second later lost money after fees. |
 | **Maker bot dry run** | 52 trades over 7 hours | −$30.95. Quick take-profit sales made +$21.54; positions held to settlement lost −$45.82. |
@@ -87,7 +88,7 @@ This market is fast and priced about right. Beating it would take information or
           ┌──────────────────────────┼──────────────────────────┐
           ▼                          ▼                          ▼
    backtest_v3.py             strategy_lab.py             lag_study.py
-   model accuracy,            tunes 144 settings on      how fast Kalshi
+   model accuracy,            tunes 164 settings on      how fast Kalshi
    rule-by-rule P&L           TRAIN, checks on TEST       follows BTC jumps
 ```
 
@@ -144,7 +145,7 @@ Reports are saved to `data/live/` as `backtest_report.txt`, `lab_report.txt` and
 |---|---|---|
 | `record_v3.py` | Reads 4 exchanges and Kalshi's order book every second. Records each window's strike and settle. | `rec_YYYYMMDD.csv`, `results.csv` |
 | `backtest_v3.py` | Measures model vs market accuracy by time left, the index offset, and the P&L of taker, maker and last-minute rules. Also the shared data loader. | `backtest_report.txt` |
-| `strategy_lab.py` | Tests 5 strategy ideas across 144 settings: edge, favorite, late edge, follow the move, fade the move. Picks the best on TRAIN and reports it on TEST. | `lab_report.txt`, `best_config.json` |
+| `strategy_lab.py` | Tests 8 strategy ideas across 164 settings: edge, favorite, late, late edge (including the final minute), follow the move, fade the move, order-book imbalance and leading exchange. Picks the best on TRAIN and reports it on TEST. | `lab_report.txt`, `best_config.json` |
 | `lag_study.py` | Finds Bitcoin jumps and measures how fast Kalshi's price follows. Then simulates trading the jump 1 second late. | `lag_report.txt` |
 
 All three analysis tools take the same options:

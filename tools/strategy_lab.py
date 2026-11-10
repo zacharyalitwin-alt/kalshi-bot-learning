@@ -27,12 +27,19 @@ Strategy ideas tested (entry), each with several exit styles:
               the market in the last 5 min but not before; this checks if it pays)
   follow    - buy in the direction the market just moved fast
   fade      - buy the side that just dropped fast (bet on a bounce)
+  imbalance - buy the side with much more size waiting at Kalshi's best bid
+              (a lopsided book often comes before the price moves)
+  leader    - buy the way one exchange has just pulled ahead of the other three
+              (Kalshi's index averages several exchanges, so a lead may not be priced yet)
+lateedge also runs in the final minute (10-60 s left), where the settlement
+average is partly known; the model already uses the known part.
 Exits: hold to settlement, or take profit / stop at several distances.
 
 Fills come from 1-second snapshots at the best price with no queue or size
 limit, so real results will be worse. This tool does not trade.
 """
-import json, math, os, sys
+import json, math, os, statistics, sys
+from collections import deque
 import backtest_v3 as bt
 
 FOLDER = bt.FOLDER
@@ -49,6 +56,8 @@ MAX_PER_WINDOW = 6
 NO_ENTRY_SECS = 90
 END_SECS = 45             # in the last 45 s: sell, unless model gives our side 85%+
 KS = (1.0, 1.5, 2.0)
+LEAD_BASE_SECS = 300      # an exchange's normal offset from the others = its average over 5 min
+LEAD_MIN_POINTS = 30
 
 EXITS = {"hold": None, "tp15/sl10": (15, 10), "tp25/sl12": (25, 12),
          "tp40/sl20": (40, 20), "tp60/sl30": (60, 30)}
@@ -61,9 +70,34 @@ def fee(price, n):
 
 
 # ---------------------------- features ----------------------------
+def lead_signals(r, devs):
+    """How far each exchange is ahead of the other three right now, beyond its usual
+    offset, in dollars. Returns {"coinbase": $, "any": $ of the exchange furthest ahead}."""
+    ex = r.get("ex") or ()
+    if len(ex) != 4 or any(v is None for v in ex):
+        return {}
+    now, out, best = r["ts"], {}, 0.0
+    for i, name in enumerate(bt.EXCHANGES):
+        dev = ex[i] - statistics.median(ex[:i] + ex[i + 1:])
+        q = devs[name]
+        q.append((now, dev))
+        while q and q[0][0] < now - LEAD_BASE_SECS:
+            q.popleft()
+        if len(q) < LEAD_MIN_POINTS:
+            continue
+        lead = dev - sum(d for _, d in q) / len(q)
+        out[name] = lead
+        if abs(lead) > abs(best):
+            best = lead
+    if out:
+        out["any"] = best
+    return out
+
+
 def features(win):
     """Thinned snapshots with everything a strategy needs, computed once."""
     out, mids = [], []
+    devs = {name: deque() for name in bt.EXCHANGES}
     for i, r in enumerate(win["rows"]):
         if i % STEP or not (r["yb"] and r["nb"]):
             continue
@@ -73,8 +107,11 @@ def features(win):
         old = [m for t, m in mids if t <= r["ts"] - 30]
         mom = mid - old[-1] if old else 0.0           # YES mid change over ~30 s, cents
         P = {k: bt.fair_yes(r, win, win["gap"], k) for k in KS}
+        ys, ns = r.get("ys") or 0, r.get("ns") or 0
+        imb = (ys - ns) / (ys + ns) if ys > 0 and ns > 0 else 0.0   # +1 = all size on YES
         out.append({"ts": r["ts"], "secs": r["secs"], "yb": yb, "nb": nb,
-                    "ya": 100 - nb, "na": 100 - yb, "P": P, "mom": mom})
+                    "ya": 100 - nb, "na": 100 - yb, "P": P, "mom": mom,
+                    "imb": imb, "lead": lead_signals(r, devs)})
     return out
 
 
@@ -84,11 +121,11 @@ def want(kind, p, f):
     secs, P = f["secs"], f["P"][p.get("k", 1.5)]
     if 100 - f["yb"] - f["nb"] > MAX_SPREAD:
         return None
-    sides = (("yes", f["ya"], P, f["mom"]), ("no", f["na"], 1 - P, -f["mom"]))
+    sides = (("yes", f["ya"], P, f["mom"], 1), ("no", f["na"], 1 - P, -f["mom"], -1))
     if kind == "late":
         if not (100 <= secs <= 270):
             return None
-        for side, ask, pw, _ in sides:
+        for side, ask, pw, _, _ in sides:
             if 90 <= ask <= 96 and pw >= p["need_p"]:
                 return side, ask
         return None
@@ -97,7 +134,7 @@ def want(kind, p, f):
         if not (lo_s <= secs <= hi_s):
             return None
         best = None
-        for side, ask, pw, _ in sides:
+        for side, ask, pw, _, _ in sides:
             if 5 <= ask <= 95:
                 edge = pw - (ask + fee(ask, CONTRACTS) / CONTRACTS) / 100
                 if edge >= p["edge"] and (best is None or edge > best[2]):
@@ -106,7 +143,7 @@ def want(kind, p, f):
     if secs < NO_ENTRY_SECS:
         return None
     best = None
-    for side, ask, pw, mom in sides:          # mom > 0 = moved toward this side
+    for side, ask, pw, mom, sgn in sides:     # mom > 0 = moved toward this side
         lo, hi = p.get("band", (20, 80))
         if not (lo <= ask <= hi):
             continue
@@ -119,6 +156,11 @@ def want(kind, p, f):
             ok = mom >= p["move"]
         elif kind == "fade":
             ok = mom <= -p["move"]
+        elif kind == "imbalance":
+            ok = sgn * f["imb"] >= p["imb"]
+        elif kind == "leader":
+            lead = f["lead"].get(p["exch"])
+            ok = lead is not None and sgn * lead >= p["usd"]
         else:
             ok = False
         if ok and (best is None or ask < best[1]):
@@ -172,8 +214,15 @@ def grid():
         for mv in (8, 15, 25):
             g.append(("follow", {"move": mv, "band": (30, 75), "exit": ex}))
             g.append(("fade", {"move": mv, "band": (20, 65), "exit": ex}))
+    for ex in ("hold", "tp25/sl12", "tp40/sl20"):
+        for th in (0.6, 0.8):
+            g.append(("imbalance", {"imb": th, "band": (20, 80), "exit": ex}))
+    for ex in ("hold", "tp25/sl12"):
+        for exch in ("coinbase", "any"):
+            for usd in (10, 20):
+                g.append(("leader", {"exch": exch, "usd": usd, "band": (20, 80), "exit": ex}))
     for k in (1.0, 1.5):
-        for secs in ((90, 300), (30, 180), (30, 120)):
+        for secs in ((90, 300), (30, 180), (30, 120), (10, 60)):
             for e in (0.05, 0.10, 0.15):
                 g.append(("lateedge", {"k": k, "secs": secs, "edge": e, "exit": "hold"}))
     for need in (0.95, 0.97, 0.99):
@@ -192,6 +241,10 @@ def score(per_win):
     if len(wr) > 2:
         m = sum(wr) / len(wr)
         sd = (sum((x - m) ** 2 for x in wr) / (len(wr) - 1)) ** 0.5
+        # A run of wins on 90c+ bets has almost no spread, which would make luck look like proof.
+        # Never let the spread fall below half of what a fair bet at the average price would have.
+        q = min(0.99, max(0.01, sum(c for _, c in t) / len(t) / (100 * CONTRACTS)))
+        sd = max(sd, 0.5 * math.sqrt((1 - q) / q))
         tstat = m / (sd / len(wr) ** 0.5) if sd > 0 else 0.0
     else:
         tstat = 0.0
@@ -246,7 +299,7 @@ def main():
     # best settings per idea, picked on TRAIN only, then checked on TEST
     P("== Best settings of each idea (chosen on TRAIN, checked on TEST) ==")
     champs = []
-    for kind in ("edge", "favorite", "late", "lateedge", "follow", "fade"):
+    for kind in ("edge", "favorite", "late", "lateedge", "follow", "fade", "imbalance", "leader"):
         c = [s for s in scored if s[0] == kind and s[2]["n"] >= MIN_TRADES_TRAIN]
         if not c:
             P(f"  {kind:<8} not enough trades to judge"); continue
@@ -258,6 +311,8 @@ def main():
 
     passed = [s for s in champs if s[2]["t"] >= MIN_T and s[3]["t"] >= MIN_T
               and s[3]["n"] >= MIN_TRADES_TEST]
+    P(f"\n{len(g)} settings tested across 8 ideas. The bar of {MIN_T} on both TRAIN and TEST is there")
+    P("  because with this many tries, some settings will look good by luck alone.")
     P("")
     if passed:
         win_ = max(passed, key=lambda s: min(s[2]["t"], s[3]["t"]))

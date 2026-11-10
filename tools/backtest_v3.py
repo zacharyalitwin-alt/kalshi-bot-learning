@@ -58,6 +58,7 @@ TAKER_RATE = 0.07        # Kalshi taker fee multiplier
 MAKER_RATE = 0.0175      # maker fee multiplier (check Kalshi's schedule; some markets are 0)
 MIN_PRICE, MAX_PRICE, MAX_SPREAD = 5, 95, 6
 MIN_WINDOWS_WARN = 96    # fewer than this = treat results as noise
+EXCHANGES = ("coinbase", "kraken", "bitstamp", "gemini")   # per-exchange columns in rec_*.csv
 
 
 # ---------------------------- loading ----------------------------
@@ -79,7 +80,9 @@ def load():
                     rows.append({"ts": float(r["ts"]), "tk": r.get("ticker") or "",
                                  "secs": num(r.get("secs_left")) or 0,
                                  "strike": num(r.get("strike")), "p": p,
-                                 "yb": num(r.get("yes_bid")), "nb": num(r.get("no_bid"))})
+                                 "yb": num(r.get("yes_bid")), "nb": num(r.get("no_bid")),
+                                 "ys": num(r.get("yes_bid_sz")), "ns": num(r.get("no_bid_sz")),
+                                 "ex": tuple(num(r.get(e)) for e in EXCHANGES)})
                 except (ValueError, TypeError):
                     continue
     if SINCE_TS is not None:
