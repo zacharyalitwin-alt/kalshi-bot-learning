@@ -124,6 +124,7 @@ Leave the recorder running. It writes to `data/live/`, about 1 MB a day. After 1
 python backtest_v3.py
 python strategy_lab.py
 python lag_study.py
+python regime_study.py
 ```
 
 Reports are saved to `data/live/` as `backtest_report.txt`, `lab_report.txt` and `lag_report.txt`.
@@ -146,6 +147,7 @@ Reports are saved to `data/live/` as `backtest_report.txt`, `lab_report.txt` and
 | `record_v3.py` | Reads 4 exchanges and Kalshi's order book every second. Records each window's strike and settle. | `rec_YYYYMMDD.csv`, `results.csv` |
 | `backtest_v3.py` | Measures model vs market accuracy by time left, the index offset, and the P&L of taker, maker and last-minute rules. Also the shared data loader. | `backtest_report.txt` |
 | `strategy_lab.py` | Tests 8 strategy ideas across 164 settings: edge, favorite, late, late edge (including the final minute), follow the move, fade the move, order-book imbalance and leading exchange. Picks the best on TRAIN and reports it on TEST. | `lab_report.txt`, `best_config.json` |
+| `regime_study.py` | Checks whether each bot does better in certain market conditions known before a window opens (BTC volatility, trend, Kalshi's previous range, time of day, recent form). Picks rules on TRAIN, tests them and a bot-switching manager on TEST, and runs a luck check with shuffled conditions. | `regime_report.txt` |
 | `lag_study.py` | Finds Bitcoin jumps and measures how fast Kalshi's price follows. Then simulates trading the jump 1 second late. | `lag_report.txt` |
 
 All three analysis tools take the same options:
