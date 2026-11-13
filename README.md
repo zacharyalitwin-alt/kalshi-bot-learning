@@ -228,7 +228,7 @@ One row per finished window:
 ## What's not in this repo
 
 - **API keys.** None of these tools need one. The `.gitignore` blocks key files.
-- **The trading bots.** The bot designs, including the paper-trading bots, are kept private.
+- **The trading bots.** The paper-trading bots used in this research (a model-based taker bot and a follow-the-move bot, with dry-run mode, loss limits and a simulated-exchange test harness) are available for purchase as research code. They have **not** shown a proven edge: in testing they lost money after fees, as the results above show. No profit is promised. Contact: zacharyalitwin@gmail.com
 - **Recorded data.** `data/live/` grows every day and stays local.
 
 ## License
