@@ -19,13 +19,13 @@ Research project on Kalshi's 15-minute Bitcoin up/down market (`KXBTC15M`). See 
 
 ## Owner's setup
 
-- Runs on Windows from a folder on the Desktop (inside OneDrive), with the same `tools/` and `data/live/` layout.
+- Runs on Windows from `C:\Users\Zack\Downloads\Kalshi Bot Learning` (moved out of OneDrive in Nov 2026), with the same `tools/` and `data/live/` layout. A copy is kept in Google Drive.
 - The recorder retries writes for ~5 s because OneDrive can briefly lock files.
 - The owner uploads `rec_*.csv`, `results.csv` and report files to the chat for analysis.
 
 ## Status (Nov 2026)
 
-216 windows recorded. Model vs market, strategy lab, backtest and lag study all found no tradeable edge. The model beats the market's *mid* in the last 5 minutes but loses after spread and fees. Next idea on the list: a final-minute study comparing the model with the actual bid/ask.
+344 windows recorded. Model vs market, strategy lab (164 settings), backtest, lag study and regime study all found no proven edge. The model beats the market's *mid* in the last 5 minutes but loses after spread and fees. One weak lead: taker k=1.0 edge>=0.12 is positive in both backtest halves (+836c, 164 windows) but fails at edge 0.08 and its strength is far below the lab's bar. Paper runs: old taker bot +$41.71 over 50 windows (flips lost $207), follow bot -$14.02 over 27 trades.
 
 ## Updating the repo
 
