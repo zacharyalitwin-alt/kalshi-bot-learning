@@ -4,11 +4,9 @@
 
 **Can a bot beat Kalshi's 15-minute Bitcoin market?**
 
-This project set out to answer that with data instead of hope. I built a market recorder, a pricing model that learns, eight trading bot designs, a backtester, a strategy lab and a lag study. Then I tested them on 152 hours of second-by-second recordings (344 market windows), 16,000+ model samples, a small live run and two paper-trading runs.
+This project sets out to answer that with data instead of hope. It holds the tools: a market recorder, a backtester, a strategy lab, a lag study and a regime study. Run them on your own recordings to measure the market yourself.
 
-**The answer so far is no.** The market prices these contracts about right, reacts to Bitcoin within the same second, and every strategy that looked good on past data failed on data it hadn't seen.
-
-This repo holds the research tools. They record and analyze only. **Nothing here places trades or needs an API key.**
+This repo holds only the research tools. They record and analyze only. **Nothing here places trades or needs an API key, and no recorded data or results are published.**
 
 > **Next project:** [kalshi-market-scanner](https://github.com/zacharyalitwin-alt/kalshi-market-scanner) asks whether *other* Kalshi markets (weather, oil, sports, economics) are priced as well as this one.
 
@@ -17,7 +15,7 @@ This repo holds the research tools. They record and analyze only. **Nothing here
 ## Contents
 
 - [The market](#the-market)
-- [Results](#results)
+- [What the tools measure](#what-the-tools-measure)
 - [How it works](#how-it-works)
 - [Quick start](#quick-start)
 - [Tools](#tools)
@@ -43,38 +41,15 @@ Because both ends are one-minute averages, the first and last minute of each win
 
 ---
 
-## Results
+## What the tools measure
 
-| Test | Data | What it found |
+| Test | Tool | Question it answers |
 |---|---|---|
-| **Model vs market** | 14,483 samples, ~200 windows | The market's price predicted outcomes better than my model (Brier score 0.1789 vs 0.1883), in both halves of the data. |
-| **Trading on disagreement** | same | The more the model disagreed with the market, the more it lost: −1.2¢ per contract at a 5¢ gap, **−9.0¢** at a 20¢ gap. |
-| **Strategy lab** | 344 windows, 8 ideas, 164 settings | **No winner.** No setting was strong on both the training data and the unseen test data. "Follow the move" ($25 move, hold), the lead in earlier runs, made +11.9% on training data but only +0.4% on unseen data. Order-book imbalance, a leading exchange and final-minute buying also failed on unseen data. |
-| **Backtest** | 344 windows, 36 taker/maker/last-minute rules | One rule was profitable in both halves: buy when the model beats the ask by 12+ points (+836¢ over 164 windows, +2.35¢ per trade). But at 8 points it turns negative, and its strength score (0.3–0.9) is far below the bar, so it may be luck. Every resting-bid (maker) rule and every last-minute rule lost money. |
-| **Regime study** | 344 windows, 2 bots, 5 market conditions | **No help.** A manager that switched bots by volatility, trend, time of day or recent form lost 398¢ on unseen data, while the 12-point taker rule alone made 543¢. Shuffled conditions did as well 19 times in 20. |
-| **Lag study** | 435 Bitcoin jumps of $20+ in 2 s | **No usable lag.** 83% of Kalshi's price move happens in the same second as the jump. Trading 1 second later lost money after fees. |
-| **Maker bot dry run** | 52 trades over 7 hours | −$30.95. Quick take-profit sales made +$21.54; positions held to settlement lost −$45.82. |
-| **Taker bot paper run** | 50 windows over 14 hours | +$41.71 on $2,910 of paper buys (+1.4%): +$186 in the first half, −$144 in the second. Switching sides mid-window lost $207; holding to settlement made $248. |
-| **Follow bot paper run** | 27 trades over 2 days | −$14.02 (−8.5%). It won 56% of trades, but at the prices it paid it needs about 61% to break even. |
-
-### The one interesting result
-
-Late in a window, the model is a **better estimate** than the market's mid-price (344 windows):
-
-| Time left | Model error | Market mid error |
-|---|---|---|
-| 10–15 min | 0.2042 | **0.2021** |
-| 5–10 min | 0.1532 | **0.1499** |
-| 1.5–5 min | **0.0836** | 0.0948 |
-| Last 90 s | **0.0241** | 0.0584 |
-
-*(Brier score, lower is better.)*
-
-But every last-minute rule that traded on it lost 6–11¢ per trade. Near the close the order book thins out and the spread widens, so the mid-price looks wrong while the actual ask is already close to right. You can only trade at the ask, plus a fee, and that gap is larger than the model's advantage.
-
-### Bottom line
-
-This market is fast and priced about right. Beating it would take information or speed the market doesn't already have, and none of these tests found either. The one rule still standing, the 12-point taker rule, is weak and fragile, and is being forward-tested on paper.
+| **Model vs market** | `backtest_v3.py` | Does a pricing model predict outcomes better than the market's own price, and at which times in the window? |
+| **Backtest** | `backtest_v3.py` | Would simple taker, maker and last-minute rules have made money after fees and spread, and in both halves of the data? |
+| **Strategy lab** | `strategy_lab.py` | Does any of 8 strategy ideas hold up on unseen data after being tuned on earlier data? |
+| **Regime study** | `regime_study.py` | Do strategies do better in certain market conditions (volatility, trend, time of day, recent form), and would switching between them help? |
+| **Lag study** | `lag_study.py` | How fast does Kalshi's price follow a Bitcoin jump, and is there time to trade it? |
 
 ---
 
@@ -194,13 +169,13 @@ One row per finished window:
 
 ## Lessons
 
-1. **Measure before assuming.** An early estimate of the index offset, +$10 read off 2 windows, was wrong. Over 200+ windows it's about −$1, with a spread of ±$6.
+1. **Measure before assuming.** Estimate offsets and costs from many windows, not a few.
 2. **Benchmark against the market, not a coin flip.** Being right 60% of the time means nothing if the price already said 60%.
-3. **Keep tuning data and test data apart.** Several settings looked strong on the data they were tuned on and lost on the next day's.
-4. **A better estimate isn't a better trade.** The model beat the mid-price late in the window and still lost money, because the spread and fees cost more than the gap.
-5. **Averaging down hides losses.** One live position grew from 10 to 30 contracts on the way down and lost $14.65 in a single window.
-6. **Build the safety rails first.** Dry-run by default, loss limits and a simulated exchange caught bugs before they cost money.
-7. **Count every trade.** One bot's settled trades alone showed +$360. Adding the positions it sold early to switch sides brought the real result down to +$42.
+3. **Keep tuning data and test data apart.** Settings that look strong on the data they were tuned on often fail on the next day's.
+4. **A better estimate isn't a better trade.** A model can beat the mid-price and still lose money, because you trade at the ask and pay a fee.
+5. **Averaging down hides losses.** Adding to a losing position makes one bad window much worse.
+6. **Build the safety rails first.** Dry-run by default, loss limits and a simulated exchange catch bugs before they cost money.
+7. **Count every trade.** A bot's settled trades alone can look far better than its real result if early exits are left out.
 
 ---
 
@@ -209,7 +184,7 @@ One row per finished window:
 **Limits**
 
 - The recorder samples about once a second, so effects faster than one second are invisible.
-- 344 windows covers about six days. Calm and volatile days behave differently.
+- A few days of recording can't cover every kind of market. Calm and volatile days behave differently.
 - Fills are simulated from the top of the book. Real orders larger than the displayed size would do worse.
 
 **Possible next studies**
@@ -228,7 +203,7 @@ One row per finished window:
 ## What's not in this repo
 
 - **API keys.** None of these tools need one. The `.gitignore` blocks key files.
-- **The trading bots.** The paper-trading bots used in this research (a model-based taker bot and a follow-the-move bot, with dry-run mode, loss limits and a simulated-exchange test harness) are available for purchase as research code. They have **not** shown a proven edge: in testing they lost money after fees, as the results above show. No profit is promised. Contact: zacharyalitwin@gmail.com
+- **The trading bots.** The paper-trading bots used in this research (a model-based taker bot and a follow-the-move bot, with dry-run mode, loss limits and a simulated-exchange test harness) are available for purchase as research code. They have **not** shown a proven edge and lost money in testing after fees. No profit is promised. Contact: zacharyalitwin@gmail.com
 - **Recorded data.** `data/live/` grows every day and stays local.
 
 ## License
@@ -237,4 +212,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Disclaimer
 
-For research and education only. Not investment advice. Prediction markets carry real risk of loss, and this project found no edge.
+For research and education only. Not investment advice. Prediction markets carry real risk of loss.

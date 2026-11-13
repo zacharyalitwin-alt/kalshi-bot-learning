@@ -26,8 +26,8 @@ Research project on Kalshi's 15-minute Bitcoin up/down market (`KXBTC15M`). See 
 
 ## Status (Nov 2026)
 
-344 windows recorded. Model vs market, strategy lab (164 settings), backtest, lag study and regime study all found no proven edge. The model beats the market's *mid* in the last 5 minutes but loses after spread and fees. One weak lead: taker k=1.0 edge>=0.12 is positive in both backtest halves (+836c, 164 windows) but fails at edge 0.08 and its strength is far below the lab's bar. Paper runs: old taker bot +$41.71 over 50 windows (flips lost $207), follow bot -$14.02 over 27 trades.
+No proven edge so far. Results stay off GitHub (see Updating the repo).
 
 ## Updating the repo
 
-When results change, update the README's Results section with the new numbers and window counts, and keep the honest bottom line.
+Do not put results, numbers or findings from the owner's data in the README or anywhere on GitHub (owner's rule, Nov 2026). The README describes the tools and how to use them; results are reported to the owner in chat only.
