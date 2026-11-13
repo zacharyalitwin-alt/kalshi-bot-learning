@@ -6,6 +6,7 @@ Research project on Kalshi's 15-minute Bitcoin up/down market (`KXBTC15M`). See 
 
 - **Research only.** Nothing in this repo places orders. Don't add trading code, order endpoints or API-key handling unless the owner explicitly asks.
 - **Never commit secrets or data.** No `.pem` / key files, no `rec_*.csv`, `results.csv` or reports. `.gitignore` covers these; keep it that way.
+- **GitHub holds only the market-measurement tools.** No bots, no trading code, no recorded data, logs or reports. The owner's rule (Nov 2026).
 - **Test the way the README says.** Benchmark against the market's own price, choose settings on TRAIN and report them on unseen TEST, and include Kalshi's taker fee `ceil(0.07 × C × P × (1 − P))` and the spread in every simulated trade.
 - **Report results plainly.** If a test finds no edge, say so. Don't tune until something looks good.
 - Explain things to the owner in plain language and give Windows Command Prompt commands (one per code block).
